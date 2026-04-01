@@ -1,3 +1,12 @@
+---
+title: AI Code Review Env
+emoji: 🧪
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
+
 # AI Code Review Environment
 
 Real-world OpenEnv environment for training and evaluating AI agents on software code review tasks.
