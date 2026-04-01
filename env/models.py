@@ -31,7 +31,9 @@ class Action(BaseModel):
     issues_found: List[str] = Field(default_factory=list, description="List of issues detected")
     severity: Literal["low", "medium", "high"] = Field(description="Overall severity level")
     suggestion: str = Field(description="Suggested fix or improvement")
-    decision: Literal["approve", "reject", "needs_changes"] = Field(description="Final review decision")
+    decision: Literal["approve", "reject", "needs_changes", "continue_review"] = Field(
+        description="Review decision; use continue_review to gather more evidence before finalizing"
+    )
     confidence: float = Field(ge=0.0, le=1.0, description="Confidence in the review (0.0-1.0)")
     
     class Config:

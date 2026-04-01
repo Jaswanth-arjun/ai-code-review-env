@@ -22,8 +22,8 @@ actions:
       description: Suggested fix or improvement
     decision:
       type: string
-      enum: [approve, reject, needs_changes]
-      description: Final review decision
+      enum: [approve, reject, needs_changes, continue_review]
+      description: Review decision; use continue_review to defer final approval/rejection
     confidence:
       type: number
       minimum: 0.0

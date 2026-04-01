@@ -18,6 +18,9 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 ENV API_BASE_URL=${API_BASE_URL:-https://api.openai.com/v1}
 ENV MODEL_NAME=${MODEL_NAME:-gpt-4}
+ENV HF_TOKEN=${HF_TOKEN:-}
 
-# Run inference script
-CMD ["python", "inference.py"]
+EXPOSE 7860
+
+# Start OpenEnv-compatible API server for Spaces health checks (/reset, /step, /state)
+CMD ["python", "-m", "server.app"]

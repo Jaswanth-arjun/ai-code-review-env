@@ -15,9 +15,40 @@ from env.tasks import task_manager
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+HF_TOKEN = os.getenv("HF_TOKEN")
 MAX_STEPS = 5
-TEMPERATURE = 0.7
+TEMPERATURE = float(os.getenv("TEMPERATURE", "0.0"))
 MAX_TOKENS = 500
+
+
+def _safe_text(value: str) -> str:
+    """Normalize text for single-line structured logs."""
+    return (value or "").replace("\n", " ").replace("\r", " ").strip()
+
+
+def log_start(task: str, env_name: str, model: str) -> None:
+    """Emit a structured start log line."""
+    print(f"[START] task={task} env={env_name} model={model}", flush=True)
+
+
+def log_step(step: int, action: Dict[str, Any], reward: float, done: bool, error: str | None) -> None:
+    """Emit a structured per-step log line."""
+    action_json = json.dumps(action, ensure_ascii=True)
+    error_text = _safe_text(error) if error else ""
+    print(
+        f"[STEP] step={step} reward={reward:.4f} done={str(done).lower()} "
+        f"error={error_text} action={action_json}",
+        flush=True,
+    )
+
+
+def log_end(success: bool, steps: int, score: float, rewards: list[float]) -> None:
+    """Emit a structured end log line."""
+    rewards_text = ",".join(f"{r:.4f}" for r in rewards)
+    print(
+        f"[END] success={str(success).lower()} steps={steps} score={score:.4f} rewards=[{rewards_text}]",
+        flush=True,
+    )
 
 
 def create_system_prompt() -> str:
@@ -29,7 +60,7 @@ You must output your response in the following JSON format:
     "issues_found": ["list", "of", "issues"],
     "severity": "low|medium|high",
     "suggestion": "Your detailed suggestion for improvement",
-    "decision": "approve|reject|needs_changes",
+    "decision": "approve|reject|needs_changes|continue_review",
     "confidence": 0.0-1.0
 }
 
@@ -74,7 +105,7 @@ def parse_llm_response(response_text: str) -> Dict[str, Any]:
             "issues_found": ["Unable to parse response"],
             "severity": "medium",
             "suggestion": "Please ensure response is in valid JSON format",
-            "decision": "needs_changes",
+            "decision": "continue_review",
             "confidence": 0.5
         }
 
@@ -119,6 +150,8 @@ def run_episode(env: CodeReviewEnv, client: OpenAI | None) -> Dict[str, Any]:
     print(f"Code to review:\n{observation.code}\n")
     
     total_reward = 0.0
+    rewards: list[float] = []
+    log_start(task=env.task_id, env_name="ai-code-review-env", model=MODEL_NAME)
     
     for step in range(MAX_STEPS):
         print(f"\n--- Step {step + 1}/{MAX_STEPS} ---")
@@ -137,6 +170,8 @@ Please provide your code review in JSON format as specified."""
             {"role": "user", "content": user_content}
         ]
         
+        error_text = None
+
         if client is None:
             response_text = json.dumps(generate_fallback_action(observation.code))
         else:
@@ -151,6 +186,7 @@ Please provide your code review in JSON format as specified."""
                 response_text = completion.choices[0].message.content or ""
 
             except Exception as e:
+                error_text = _safe_text(str(e))
                 print(f"Error calling LLM: {e}")
                 response_text = json.dumps({
                     "issues_found": ["Error in LLM call"],
@@ -167,18 +203,26 @@ Please provide your code review in JSON format as specified."""
         
         observation, reward, done, info = env.step(action)
         total_reward += reward.score
+        rewards.append(reward.score)
         
         print(f"Reward: {reward.score:.3f} | Total: {total_reward:.3f} | Done: {done}")
         print(f"Details: {reward.details}")
+        log_step(step=step + 1, action=action_dict, reward=reward.score, done=done, error=error_text)
         
         if done:
             print("\nEpisode complete!")
             break
+
+    max_total_reward = float(MAX_STEPS)
+    normalized_score = min(max(total_reward / max_total_reward, 0.0), 1.0)
+    success = normalized_score >= 0.6
+    log_end(success=success, steps=env.current_step, score=normalized_score, rewards=rewards)
     
     return {
         'task_id': env.task_id,
         'difficulty': env.current_task.difficulty,
         'total_reward': total_reward,
+        'normalized_score': normalized_score,
         'steps_taken': env.current_step,
         'history': env.history
     }

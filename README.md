@@ -15,7 +15,7 @@ The environment follows `step() / reset() / state()` patterns implemented in `en
 - `issues_found: List[str]`
 - `severity: Literal["low", "medium", "high"]`
 - `suggestion: str`
-- `decision: Literal["approve", "reject", "needs_changes"]`
+- `decision: Literal["approve", "reject", "needs_changes", "continue_review"]`
 - `confidence: float` in `[0.0, 1.0]`
 
 ### Observation Space
