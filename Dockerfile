@@ -23,4 +23,4 @@ ENV HF_TOKEN=${HF_TOKEN:-}
 EXPOSE 7860
 
 # Start OpenEnv-compatible API server for Spaces health checks (/reset, /step, /state)
-CMD ["python", "-m", "server.app"]
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "7860"]
