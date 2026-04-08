@@ -49,13 +49,13 @@ Reward combines issue detection, severity match, suggestion quality, decision qu
 Defined in `env/tasks.py` with deterministic graders in `env/graders.py`.
 
 1. Easy (`task_easy_1`)
-- Detect division-by-zero risk in average calculation.
+- Detect a subtle logic error: incorrect pagination offset calculation leading to skipped records.
 
 2. Medium (`task_medium_1`)
-- Detect hardcoded credential and weak validation/security behavior.
+- Detect modern crypto/security flaws: HMAC timing attack and replay attack vulnerabilities in webhook verification.
 
 3. Hard (`task_hard_1`)
-- Detect multi-issue scenarios: complexity issues, injection risk, resource leaks, and indexing errors.
+- Detect distributed systems issues: Race condition (TOC/TOU) in async execution combined with a dangerous IDOR vulnerability.
 
 All graders output bounded scores in `[0.0, 1.0]`.
 

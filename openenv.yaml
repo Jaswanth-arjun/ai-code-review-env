@@ -66,17 +66,17 @@ rewards:
 tasks:
   - id: task_easy_1
     difficulty: easy
-    description: Simple bug detection - identify division by zero risk in average calculation
+    description: Subtle logic error - incorrect pagination offset calculation leading to skipped records
     max_steps: 5
     
   - id: task_medium_1
     difficulty: medium
-    description: Logical and security issues - hardcoded credentials, missing validation
+    description: Modern security flaws - HMAC timing attack and replay attack vulnerabilities in webhook verification
     max_steps: 5
     
   - id: task_hard_1
     difficulty: hard
-    description: Multiple issues - performance, security, memory leaks, off-by-one errors
+    description: Distributed systems complexity - Race condition (TOC/TOU) in async flow combined with IDOR vulnerability
     max_steps: 5
 
 metadata:
