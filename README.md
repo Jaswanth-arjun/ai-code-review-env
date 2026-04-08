@@ -5,6 +5,8 @@ colorFrom: blue
 colorTo: green
 sdk: docker
 pinned: false
+tags:
+  - openenv
 ---
 
 # AI Code Review Environment
@@ -63,19 +65,30 @@ The required baseline runner is `inference.py` in repo root.
 
 ### Environment Variables
 
-- `API_KEY` (required for live model baseline)
-- `API_BASE_URL` (default: `https://api.openai.com/v1`)
-- `MODEL_NAME` (default: `gpt-4`)
-- `HF_TOKEN` (for deployment workflows)
+| Variable | Description |
+|---|---|
+| `API_KEY` or `OPENAI_API_KEY` | **Required.** API key for the LLM endpoint. |
+| `API_BASE_URL` | The LLM API endpoint (default: `https://api.openai.com/v1`). |
+| `MODEL_NAME` | The model identifier to use (default: `gpt-4`). |
+| `HF_TOKEN` | Hugging Face token for deployment workflows. |
+
+The inference script uses the **OpenAI client** initialized with the injected `API_BASE_URL` and `API_KEY` environment variables:
+
+```python
+client = OpenAI(
+    base_url=os.environ.get("API_BASE_URL"),
+    api_key=os.environ.get("API_KEY"),
+)
+```
 
 ### Run
 
 ```bash
 pip install -r requirements.txt
-python inference.py
+API_KEY=<your-key> python inference.py
 ```
 
-Outputs per-task scores and writes `baseline_results.json`.
+Outputs per-task scores, structured `[START]`/`[STEP]`/`[END]` logs, and writes `baseline_results.json`.
 
 ## 5) OpenEnv Server Endpoints
 
@@ -109,14 +122,14 @@ docker run --rm -e API_KEY=$API_KEY ai-code-review-env
 
 1. Push this repository to a HF Space configured as Docker.
 2. Ensure environment variables are set in Space settings:
-- `API_KEY`
-- `API_BASE_URL`
-- `MODEL_NAME`
-- `HF_TOKEN`
+   - `API_KEY`
+   - `API_BASE_URL`
+   - `MODEL_NAME`
+   - `HF_TOKEN`
 3. Start Space and verify `POST /reset` returns HTTP 200.
 
 ## 8) Reproducibility Notes
 
 - Deterministic task definitions and graders.
 - Bounded score outputs.
-- Baseline script logs full task-by-task outputs.
+- Baseline script logs full task-by-task outputs with structured `[START]`/`[STEP]`/`[END]` format.

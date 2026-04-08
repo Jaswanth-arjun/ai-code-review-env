@@ -25,8 +25,7 @@ MANIFEST
 
 # Virtual environments
 venv/
-ENV/
-env/
+.venv/
 env.bak/
 venv.bak/
 
@@ -44,8 +43,4 @@ venv.bak/
 .env.*.local
 
 # Outputs
-baseline_results.json
 *.log
-
-# UV
-uv.lock

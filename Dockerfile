@@ -14,11 +14,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application
 COPY . .
 
-# Set environment variables
+# Ensure unbuffered output for logs
 ENV PYTHONUNBUFFERED=1
-ENV API_BASE_URL=${API_BASE_URL:-https://api.openai.com/v1}
-ENV MODEL_NAME=${MODEL_NAME:-gpt-4}
-ENV HF_TOKEN=${HF_TOKEN:-}
 
 EXPOSE 7860
 
