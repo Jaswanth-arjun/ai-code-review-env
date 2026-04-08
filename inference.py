@@ -14,7 +14,7 @@ from env.tasks import task_manager
 # Configuration
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+API_KEY = os.getenv("API_KEY")
 HF_TOKEN = os.getenv("HF_TOKEN")
 MAX_STEPS = 5
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.0"))
@@ -231,13 +231,13 @@ Please provide your code review in JSON format as specified."""
 def main():
     """Main execution function."""
     client = None
-    if not OPENAI_API_KEY:
-        print("Warning: OPENAI_API_KEY not set")
+    if not API_KEY:
+        print("Warning: API_KEY not set")
         print("Running in offline fallback mode")
     else:
         client = OpenAI(
             base_url=API_BASE_URL,
-            api_key=OPENAI_API_KEY
+            api_key=API_KEY
         )
     
     all_tasks = task_manager.get_all_tasks()
