@@ -63,7 +63,7 @@ The required baseline runner is `inference.py` in repo root.
 
 ### Environment Variables
 
-- `OPENAI_API_KEY` (required for live model baseline)
+- `API_KEY` (required for live model baseline)
 - `API_BASE_URL` (default: `https://api.openai.com/v1`)
 - `MODEL_NAME` (default: `gpt-4`)
 - `HF_TOKEN` (for deployment workflows)
@@ -102,14 +102,14 @@ Optional container checks:
 
 ```bash
 docker build -t ai-code-review-env .
-docker run --rm -e OPENAI_API_KEY=$OPENAI_API_KEY ai-code-review-env
+docker run --rm -e API_KEY=$API_KEY ai-code-review-env
 ```
 
 ## 7) Hugging Face Space Deployment
 
 1. Push this repository to a HF Space configured as Docker.
 2. Ensure environment variables are set in Space settings:
-- `OPENAI_API_KEY`
+- `API_KEY`
 - `API_BASE_URL`
 - `MODEL_NAME`
 - `HF_TOKEN`
