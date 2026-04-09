@@ -17,12 +17,15 @@ from env.tasks import task_manager
 API_BASE_URL = os.environ.get("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME = os.environ.get("MODEL_NAME", "gpt-4")
 # Functional spec names OPENAI_API_KEY; Spaces often inject HF_TOKEN only.
+HF_TOKEN = os.environ.get("HF_TOKEN")
+if HF_TOKEN is None:
+    raise ValueError("HF_TOKEN environment variable is required")
+
 API_KEY = (
     os.environ.get("OPENAI_API_KEY")
     or os.environ.get("API_KEY")
-    or os.environ.get("HF_TOKEN", "")
+    or HF_TOKEN
 )
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
 
 MAX_STEPS = 5
 TEMPERATURE = float(os.environ.get("TEMPERATURE", "0.0"))
@@ -44,19 +47,18 @@ def log_start(task: str, env: str, model: str) -> None:
 
 def log_step(step: int, action: str, reward: float, done: bool, error: str | None) -> None:
     """Emit a structured per-step log line."""
-    error_text = _safe_text(error) if error else ""
+    error_text = _safe_text(error) if error else "null"
     print(
-        f"[STEP] step={step} reward={reward:.4f} done={str(done).lower()} "
-        f"error={error_text} action={action}",
+        f"[STEP] step={step} action={action} reward={reward:.2f} done={str(done).lower()} error={error_text}",
         flush=True,
     )
 
 
 def log_end(success: bool, steps: int, score: float, rewards: list[float]) -> None:
     """Emit a structured end log line."""
-    rewards_text = ",".join(f"{r:.4f}" for r in rewards)
+    rewards_text = ",".join(f"{r:.2f}" for r in rewards)
     print(
-        f"[END] success={str(success).lower()} steps={steps} score={score:.4f} rewards=[{rewards_text}]",
+        f"[END] success={str(success).lower()} steps={steps} rewards={rewards_text}",
         flush=True,
     )
 
