@@ -4,33 +4,33 @@
     {
       "task_id": "task_easy_1",
       "difficulty": "easy",
-      "total_reward": 0.045,
-      "normalized_score": 0.009,
+      "total_reward": 0.4,
+      "normalized_score": 0.08,
       "steps_taken": 1,
       "history": [
-        "Step 1: approve (confidence: 0.55)"
+        "Step 1: 'needs_changes' -> reward +0.40"
       ]
     },
     {
       "task_id": "task_medium_1",
       "difficulty": "medium",
-      "total_reward": 0.3564285714285715,
-      "normalized_score": 0.0712857142857143,
+      "total_reward": 0.18000000000000002,
+      "normalized_score": 0.036000000000000004,
       "steps_taken": 1,
       "history": [
-        "Step 1: needs_changes (confidence: 0.65)"
+        "Step 1: 'needs_changes' -> reward +0.18"
       ]
     },
     {
       "task_id": "task_hard_1",
       "difficulty": "hard",
-      "total_reward": 0.045,
-      "normalized_score": 0.009,
+      "total_reward": 0.18000000000000002,
+      "normalized_score": 0.036000000000000004,
       "steps_taken": 1,
       "history": [
-        "Step 1: approve (confidence: 0.55)"
+        "Step 1: 'needs_changes' -> reward +0.18"
       ]
     }
   ],
-  "average_score": 0.14880952380952384
+  "average_score": 0.05066666666666667
 }

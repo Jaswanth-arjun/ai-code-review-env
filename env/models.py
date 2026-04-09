@@ -1,21 +1,30 @@
 """Pydantic models for the Code Review Environment."""
 
 from pydantic import BaseModel, Field
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict
 
 
 class Observation(BaseModel):
     """Observation from the code review environment."""
     
+    task_id: str = Field(description="Active task identifier")
+    difficulty: Literal["easy", "medium", "hard"] = Field(description="Task difficulty band")
+    review_context: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Simulated pull-request metadata (title, path, policy). No hidden answers.",
+    )
     code: str = Field(description="The code to be reviewed")
     language: str = Field(description="Programming language of the code")
     history: List[str] = Field(default_factory=list, description="History of previous actions")
-    current_step: int = Field(description="Current step number (0-indexed)")
+    current_step: int = Field(description="Number of completed steps in this episode")
     max_steps: int = Field(description="Maximum steps allowed")
     
     class Config:
         json_schema_extra = {
             "example": {
+                "task_id": "task_easy_1",
+                "difficulty": "easy",
+                "review_context": {"pr_title": "[internal] pagination helper"},
                 "code": "def add(a,b):\n    return a+b",
                 "language": "python",
                 "history": [],

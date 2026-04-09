@@ -4,7 +4,7 @@
 import os
 import json
 import sys
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 from openai import OpenAI
 from env.environment import CodeReviewEnv
 from env.models import Action
@@ -13,17 +13,21 @@ from env.tasks import task_manager
 
 # ── Configuration ────────────────────────────────────────────────────────────
 # Read the proxy endpoint and key injected by the hackathon validator.
-# Support both API_KEY (primary, per hackathon docs) and OPENAI_API_KEY (fallback).
+# Mandatory eval variables: API_BASE_URL, MODEL_NAME, HF_TOKEN (HF token doubles as API key when hosted).
 API_BASE_URL = os.environ.get("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME = os.environ.get("MODEL_NAME", "gpt-4")
-API_KEY = os.environ.get("API_KEY") or os.environ.get("OPENAI_API_KEY", "")
+# Functional spec names OPENAI_API_KEY; Spaces often inject HF_TOKEN only.
+API_KEY = (
+    os.environ.get("OPENAI_API_KEY")
+    or os.environ.get("API_KEY")
+    or os.environ.get("HF_TOKEN", "")
+)
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
 
 MAX_STEPS = 5
 TEMPERATURE = float(os.environ.get("TEMPERATURE", "0.0"))
-MAX_TOKENS = 500
+MAX_TOKENS = 800
 SUCCESS_SCORE_THRESHOLD = 0.6
-MAX_TOTAL_REWARD = float(MAX_STEPS)
 
 
 # ── Structured logging helpers ───────────────────────────────────────────────
@@ -73,22 +77,45 @@ You must output your response in the following JSON format:
 }
 
 Consider:
-- Security vulnerabilities
+- Security vulnerabilities (injection, authz/IDOR, crypto misuse, replay, race/TOC-TOU)
 - Performance issues
-- Logic errors
+- Logic errors (off-by-one, pagination, incorrect assumptions)
 - Code quality
 - Best practices
+
+Use decision "continue_review" when you need another step to finish the review; otherwise choose a terminal decision (approve / reject / needs_changes) that matches the true risk level.
 
 Be specific and professional in your suggestions."""
 
 
-def get_model_response(client: OpenAI, code: str, history: List[str], step: int, max_steps: int) -> str:
+def _format_review_context(ctx: Dict[str, str]) -> str:
+    if not ctx:
+        return "(no additional PR metadata)"
+    lines = [f"- {k.replace('_', ' ').title()}: {v}" for k, v in sorted(ctx.items())]
+    return "\n".join(lines)
+
+
+def get_model_response(
+    client: OpenAI,
+    task_id: str,
+    difficulty: str,
+    review_context: Dict[str, str],
+    code: str,
+    history: List[str],
+    step: int,
+    max_steps: int,
+) -> str:
     """Call the LLM through the proxy and return the raw response text.
 
     This function ALWAYS makes an API call through the provided client.
     If the call fails, it raises the exception so the caller can handle it.
     """
-    user_content = f"""Review the following code:
+    user_content = f"""Task: {task_id} (difficulty: {difficulty})
+
+Simulated pull-request context:
+{_format_review_context(review_context)}
+
+Review the following code:
 {code}
 
 Previous actions history: {history if history else 'None'}
@@ -186,7 +213,14 @@ def run_episode(env: CodeReviewEnv, client: OpenAI) -> Dict[str, Any]:
         # ── ALWAYS call the LLM through the proxy ──
         try:
             response_text = get_model_response(
-                client, observation.code, history, step, MAX_STEPS
+                client,
+                observation.task_id,
+                observation.difficulty,
+                observation.review_context,
+                observation.code,
+                history,
+                step,
+                MAX_STEPS,
             )
             print(f"[DEBUG] LLM response received ({len(response_text)} chars)", flush=True)
         except Exception as exc:
@@ -224,7 +258,8 @@ def run_episode(env: CodeReviewEnv, client: OpenAI) -> Dict[str, Any]:
             print("\nEpisode complete!", flush=True)
             break
 
-    score = sum(rewards) / MAX_TOTAL_REWARD if MAX_TOTAL_REWARD > 0 else 0.0
+    # Mean per-step reward in [0, 1]. Dividing by MAX_STEPS unfairly caps one-step episodes at 0.2.
+    score = sum(rewards) / max(len(rewards), 1)
     score = min(max(score, 0.0), 1.0)
     success = score >= SUCCESS_SCORE_THRESHOLD
 
@@ -247,10 +282,17 @@ def main() -> None:
     # ── Validate that API credentials exist ──
     if not API_KEY:
         print(
-            "ERROR: No API key found. Set API_KEY or OPENAI_API_KEY environment variable.",
+            "ERROR: No API key found. Set OPENAI_API_KEY (preferred), API_KEY, or HF_TOKEN.",
             flush=True,
         )
         sys.exit(1)
+
+    # Mandatory hackathon configuration (values only; never print secrets).
+    print(
+        f"[CONFIG] API_BASE_URL={API_BASE_URL} MODEL_NAME={MODEL_NAME} "
+        f"auth=one_of(OPENAI_API_KEY,API_KEY,HF_TOKEN)",
+        flush=True,
+    )
 
     # ── Always create the OpenAI client using the injected proxy URL + key ──
     client = OpenAI(

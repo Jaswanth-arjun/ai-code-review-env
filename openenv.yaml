@@ -33,6 +33,18 @@ actions:
 observations:
   type: object
   properties:
+    task_id:
+      type: string
+      description: Active task identifier
+    difficulty:
+      type: string
+      enum: [easy, medium, hard]
+      description: Task difficulty band
+    review_context:
+      type: object
+      additionalProperties:
+        type: string
+      description: Simulated PR metadata (title, path, policy). Does not contain ground-truth answers.
     code:
       type: string
       description: Code to review
@@ -72,6 +84,11 @@ tasks:
   - id: task_medium_1
     difficulty: medium
     description: Modern security flaws - HMAC timing attack and replay attack vulnerabilities in webhook verification
+    max_steps: 5
+
+  - id: task_medium_2
+    difficulty: medium
+    description: Unsafe process invocation - shell=True with operator-controlled snippets enabling command execution
     max_steps: 5
     
   - id: task_hard_1

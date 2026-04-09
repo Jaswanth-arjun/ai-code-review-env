@@ -1,17 +1,29 @@
 """Task definitions for the AI Code Review Environment."""
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Literal
+
+
+TaskDifficulty = Literal["easy", "medium", "hard"]
 
 
 class CodeReviewTask:
     """A single code review task."""
     
-    def __init__(self, task_id: str, code: str, language: str, ground_truth: Dict[str, Any], difficulty: str):
+    def __init__(
+        self,
+        task_id: str,
+        code: str,
+        language: str,
+        ground_truth: Dict[str, Any],
+        difficulty: TaskDifficulty,
+        review_context: Dict[str, str] | None = None,
+    ):
         self.task_id = task_id
         self.code = code
         self.language = language
         self.ground_truth = ground_truth
         self.difficulty = difficulty
+        self.review_context = dict(review_context or {})
     
     def get_initial_state(self) -> Dict[str, Any]:
         """Get initial state for this task."""
@@ -27,6 +39,12 @@ CODE_DATASET = [
     # Task 1: Easy - Subtle Business Logic Flaw
     {
         'id': 'task_easy_1',
+        'review_context': {
+            'pr_title': 'fix: customer list pagination',
+            'file_path': 'services/api/query_utils.py',
+            'team_policy': 'All DB helpers must be reviewed for off-by-one and SQL injection.',
+            'risk_band': 'Customer-facing read path; PII-adjacent result sets.',
+        },
         'code': '''
 def get_paginated_results(db_session, query_base, page: int = 1, page_size: int = 20):
     """
@@ -55,6 +73,12 @@ def get_paginated_results(db_session, query_base, page: int = 1, page_size: int 
     # Task 2: Medium - Modern Crypto & Security Flaws
     {
         'id': 'task_medium_1',
+        'review_context': {
+            'pr_title': 'chore: tighten GitHub webhook verification',
+            'file_path': 'app/security/webhooks.py',
+            'team_policy': 'Webhook handlers must be constant-time and replay-resistant.',
+            'risk_band': 'Production ingress; forged events could trigger internal workflows.',
+        },
         'code': '''
 import hmac
 import hashlib
@@ -98,10 +122,63 @@ async def verify_github_webhook(request: Request, secret_token: str):
             ]
         }
     },
-    
-    # Task 3: Hard - Distributed Systems & Concurrency Flaws
+
+    # Task 3b: Medium — command execution (distinct from crypto/webhook class)
+    {
+        'id': 'task_medium_2',
+        'review_context': {
+            'pr_title': 'feat: admin preview for saved automation snippets',
+            'file_path': 'tools/admin/snippet_runner.py',
+            'team_policy': 'Never invoke a shell with operator-supplied strings; SOC2 releasable blocker.',
+            'risk_band': 'Internal admin surface; input originates from partially trusted operators.',
+        },
+        'code': '''
+import subprocess
+import shlex
+
+def preview_operator_snippet(snippet: str, timeout_sec: int = 5) -> str:
+    """
+    Run a one-liner saved by an operator so they can sanity-check output
+    before promoting it to a scheduled job. Snippet is stored in our dashboard DB.
+    """
+    # NOTE: snippet is UTF-8 from the dashboard; admins are mostly trusted but not unix experts.
+    cmd = f"bash -lc {shlex.quote(snippet)}"
+    completed = subprocess.run(
+        cmd,
+        shell=True,
+        capture_output=True,
+        text=True,
+        timeout=timeout_sec,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(completed.stderr.strip() or "preview failed")
+    return completed.stdout
+''',
+        'language': 'python',
+        'difficulty': 'medium',
+        'ground_truth': {
+            'issues': [
+                'Remote code/command execution risk: subprocess with shell=True executes operator-controlled fragments',
+                'Even with shlex.quote, composing bash -lc around user text is unsafe and unpredictable',
+            ],
+            'severity': 'high',
+            'expected_decision': 'reject',
+            'suggestion_keywords': [
+                'shell', 'subprocess', 'shell=True', 'injection', 'argv', 'no shell',
+                'exec', 'sandbox', 'whitelist', 'validate', 'disable',
+            ],
+        },
+    },
+
+    # Task 4: Hard - Distributed Systems & Concurrency Flaws
     {
         'id': 'task_hard_1',
+        'review_context': {
+            'pr_title': 'feat: async balance transfers',
+            'file_path': 'api/ledger/transfers.py',
+            'team_policy': 'Ledger mutations must be atomic per account; enforce ownership on from_account.',
+            'risk_band': 'Money movement; concurrent requests expected at scale.',
+        },
         'code': '''
 from fastapi import FastAPI, Depends, HTTPException
 import asyncio
@@ -172,7 +249,8 @@ class TaskManager:
                 code=task_data['code'].strip(),
                 language=task_data['language'],
                 ground_truth=task_data['ground_truth'],
-                difficulty=task_data['difficulty']
+                difficulty=task_data['difficulty'],
+                review_context=task_data.get('review_context'),
             )
             self.tasks.append(task)
     

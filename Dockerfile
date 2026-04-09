@@ -2,10 +2,7 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+# Pure-Python deps use wheels; skip build-essential to keep image small and builds fast on 2 vCPU.
 
 # Copy requirements first for better caching
 COPY requirements.txt .

@@ -14,6 +14,11 @@ class BaseGrader:
 
 class CodeReviewGrader(BaseGrader):
     """Grader for code review tasks."""
+
+    _STOP_WORDS = frozenset({
+        'the', 'a', 'an', 'is', 'are', 'to', 'and', 'or', 'of', 'for', 'in',
+        'on', 'with', 'from', 'by', 'when', 'be', 'no', 'not', 'missing'
+    })
     
     def __init__(self, ground_truth: Dict[str, Any]):
         """
@@ -71,11 +76,8 @@ class CodeReviewGrader(BaseGrader):
     def _tokenize(self, text: str) -> set:
         """Convert free-form issue text into normalized tokens for matching."""
         tokens = re.findall(r"[a-zA-Z0-9_]+", text.lower())
-        stop_words = {
-            'the', 'a', 'an', 'is', 'are', 'to', 'and', 'or', 'of', 'for', 'in',
-            'on', 'with', 'from', 'by', 'when', 'be', 'no', 'not', 'missing'
-        }
-        return {t for t in tokens if len(t) > 2 and t not in stop_words}
+        sw = self._STOP_WORDS
+        return {t for t in tokens if len(t) > 2 and t not in sw}
 
     def _issue_match_score(self, expected_issue: str, detected_issue: str) -> float:
         """Compute overlap score between expected and detected issue strings."""

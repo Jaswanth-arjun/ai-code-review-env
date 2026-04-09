@@ -2,9 +2,8 @@
 
 from typing import Dict, Any, Tuple, Optional
 from env.models import Observation, Action, Reward
-from env.tasks import task_manager, CodeReviewTask
+from env.tasks import task_manager
 from env.graders import TaskGrader
-import copy
 
 
 class CodeReviewEnv:
@@ -61,11 +60,14 @@ class CodeReviewEnv:
         
         # Create initial observation
         return Observation(
+            task_id=self.current_task.task_id,
+            difficulty=self.current_task.difficulty,
+            review_context=self.current_task.review_context,
             code=self.current_task.code,
             language=self.current_task.language,
             history=[],
             current_step=0,
-            max_steps=self.max_steps
+            max_steps=self.max_steps,
         )
     
     def step(self, action: Action) -> Tuple[Observation, Reward, bool, Dict[str, Any]]:
@@ -130,11 +132,14 @@ class CodeReviewEnv:
         
         # Create next observation
         observation = Observation(
+            task_id=self.current_task.task_id,
+            difficulty=self.current_task.difficulty,
+            review_context=self.current_task.review_context,
             code=self.current_task.code,
             language=self.current_task.language,
             history=self.history.copy(),
             current_step=self.current_step,
-            max_steps=self.max_steps
+            max_steps=self.max_steps,
         )
         
         # Prepare info dict
